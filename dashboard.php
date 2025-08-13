@@ -12,7 +12,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $userRole = $_SESSION['role'];
 $userName = $_SESSION['full_name'];
-$dateTime = date('H:i A \o\n l, F j, Y', time()); // Exemple : 12:08 PM on Monday, August 11, 2025
+$dateTime = date('H:i A \o\n l, F j, Y', time()); // Exemple : 02:30 PM on Monday, August 11, 2025
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -20,9 +20,9 @@ $dateTime = date('H:i A \o\n l, F j, Y', time()); // Exemple : 12:08 PM on Monda
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Tableau de Bord - Patrimoine Plus</title>
-  <meta name="description" content="Tableau de bord pour gérer votre patrimoine.">
-  <meta name="keywords" content="tableau de bord, gestion patrimoine">
+  <title>Tableau de Bord - <?php echo ($userRole == 'admin') ? 'Admin' : ''; ?> Patrimoine Plus</title>
+  <meta name="description" content="<?php echo ($userRole == 'admin') ? 'Tableau de bord pour administrer les utilisateurs et les patrimoines.' : 'Tableau de bord pour gérer votre patrimoine.'; ?>">
+  <meta name="keywords" content="<?php echo ($userRole == 'admin') ? 'tableau de bord, admin, gestion utilisateurs, patrimoine' : 'tableau de bord, gestion patrimoine'; ?>">
 
   <!-- Favicons -->
   <link href="assets/img/favicon.png" rel="icon">
@@ -167,8 +167,12 @@ $dateTime = date('H:i A \o\n l, F j, Y', time()); // Exemple : 12:08 PM on Monda
 <body>
 
   <div class="sidebar">
-    <h4 class="text-center">Menu</h4>
+    <h4 class="text-center"><?php echo ($userRole == 'admin') ? 'Menu Admin' : 'Menu'; ?></h4>
     <a href="dashboard.php"><i data-lucide="home"></i> Accueil</a>
+    <?php if ($userRole == 'admin'): ?>
+      <a href="gestion_users.php"><i data-lucide="users"></i> Gestion Utilisateurs</a>
+    <?php endif; ?>
+    <a href="actifs.php"><i data-lucide="briefcase"></i> Gestion Actifs</a>
     <a href="validation_doc.php"><i data-lucide="file-check"></i> Validation Documents</a>
     <a href="#"><i data-lucide="database"></i> Accès Patrimoines</a>
     <a href="#"><i data-lucide="bar-chart-2"></i> Statistiques Globales</a>
@@ -178,7 +182,7 @@ $dateTime = date('H:i A \o\n l, F j, Y', time()); // Exemple : 12:08 PM on Monda
   <div class="content">
     <div class="dashboard-header">
       <div>
-        <h2 class="text-blue">Tableau de Bord - <?php echo htmlspecialchars($userName); ?></h2>
+        <h2 class="text-blue">Tableau de Bord - <?php echo ($userRole == 'admin') ? 'Admin' : ''; ?> <?php echo htmlspecialchars($userName); ?></h2>
         <p class="text-muted">Dernière mise à jour : <?php echo $dateTime; ?></p>
       </div>
       <div>
@@ -218,7 +222,7 @@ $dateTime = date('H:i A \o\n l, F j, Y', time()); // Exemple : 12:08 PM on Monda
       <!-- Accueil Personnalisé -->
       <div class="col-12 mb-4">
         <div class="card p-4 h-100">
-          <h4 class="card-title">Accueil</h4>
+          <h4 class="card-title">Accueil <?php echo ($userRole == 'admin') ? 'Admin' : ''; ?></h4>
           <p class="card-text">Résumé des activités, alertes, et statistiques récentes.</p>
           <ul>
             <li>Total utilisateurs actifs : 45</li>
@@ -229,11 +233,29 @@ $dateTime = date('H:i A \o\n l, F j, Y', time()); // Exemple : 12:08 PM on Monda
         </div>
       </div>
 
+      <?php if ($userRole == 'admin'): ?>
+        <div class="col-md-4 mb-4">
+          <div class="card p-4 h-100">
+            <h4 class="card-title">Gestion des Utilisateurs</h4>
+            <p class="card-text">Consultez et modifiez les comptes.</p>
+            <a href="gestion_users.php" class="btn btn-primary"><i data-lucide="users"></i> Gérer</a>
+          </div>
+        </div>
+      <?php endif; ?>
+
+      <div class="col-md-4 mb-4">
+        <div class="card p-4 h-100">
+          <h4 class="card-title">Gestion Actifs</h4>
+          <p class="card-text">Gérez vos actifs et analysez leurs performances.</p>
+          <a href="actifs.php" class="btn btn-primary"><i data-lucide="briefcase"></i> Gérer</a>
+        </div>
+      </div>
+
       <div class="col-md-4 mb-4">
         <div class="card p-4 h-100">
           <h4 class="card-title">Validation des Documents</h4>
           <p class="card-text">Vérifiez et approuvez les documents.</p>
-          <a href="#" class="btn btn-primary"><i data-lucide="file-check"></i> Valider</a>
+          <a href="validation_doc.php" class="btn btn-primary"><i data-lucide="file-check"></i> Valider</a>
         </div>
       </div>
       <div class="col-md-4 mb-4">

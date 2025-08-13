@@ -3,120 +3,72 @@ header('Content-Type: application/javascript');
 ?>
 // action.php - Gestion des actions JavaScript pour la gestion des accès au patrimoine
 
-// Fonctions existantes (non modifiées pour cet exemple)
-function initValidationActions() {
-    // ...
-}
-
-// Nouvelles fonctions pour acces_patrimoine.php
-function handleAssignAccess(userId, accessLevel, startDate, endDate) {
+function handleModifyUser(userId) {
     fetch('process_access.php', {
         method: 'POST',
-        body: JSON.stringify({ action: 'assignAccess', userId, accessLevel, startDate, endDate }),
+        body: JSON.stringify({ action: 'modifyUser', userId }),
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(result => {
+        showStatus('global_status', result.message);
+        if (result.success) location.reload();
+    })
+    .catch(error => showError('global_status', 'Erreur lors de la modification : ' + error));
+}
+
+function handleCreateUser(fullName, email, password, role) {
+    fetch('process_access.php', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'createUser', fullName, email, password, role }),
         headers: { 'Content-Type': 'application/json' }
     })
     .then(response => response.json())
     .then(result => showStatus('global_status', result.message))
-    .catch(error => showError('global_status', 'Erreur lors de l\'attribution.'));
+    .catch(error => showError('global_status', 'Erreur lors de la création : ' + error));
 }
 
-function handleRevokeAccess(userId, assetId) {
-    if (confirm('Confirmer la révocation ?')) {
-        fetch('process_access.php', {
-            method: 'POST',
-            body: JSON.stringify({ action: 'revokeAccess', userId, assetId }),
-            headers: { 'Content-Type': 'application/json' }
-        })
-        .then(response => response.json())
-        .then(result => showStatus('global_status', result.message))
-        .catch(error => showError('global_status', 'Erreur lors de la révocation.'));
-    }
-}
-
-function handleAddUserAsset(userId, assetId) {
+function handleResetPassword(userId) {
     fetch('process_access.php', {
         method: 'POST',
-        body: JSON.stringify({ action: 'addUserAsset', userId, assetId, accessLevel: 'lecture' }),
+        body: JSON.stringify({ action: 'resetPassword', userId }),
         headers: { 'Content-Type': 'application/json' }
     })
     .then(response => response.json())
     .then(result => showStatus('global_status', result.message))
-    .catch(error => showError('global_status', 'Erreur lors de l\'ajout du bien.'));
+    .catch(error => showError('global_status', 'Erreur lors de la réinitialisation : ' + error));
 }
 
-function handleRemoveUserAsset(userId, assetId) {
+function handleToggleAccount(userId) {
     fetch('process_access.php', {
         method: 'POST',
-        body: JSON.stringify({ action: 'removeUserAsset', userId, assetId }),
+        body: JSON.stringify({ action: 'toggleAccount', userId }),
         headers: { 'Content-Type': 'application/json' }
     })
     .then(response => response.json())
     .then(result => showStatus('global_status', result.message))
-    .catch(error => showError('global_status', 'Erreur lors du retrait du bien.'));
+    .catch(error => showError('global_status', 'Erreur lors de l\'activation/désactivation : ' + error));
 }
 
-function handleCloneAccessRights(userId, fromUserId) {
+function handleChangeRole(userId, newRole) {
     fetch('process_access.php', {
         method: 'POST',
-        body: JSON.stringify({ action: 'cloneAccessRights', userId, fromUserId }),
+        body: JSON.stringify({ action: 'changeRole', userId, newRole }),
         headers: { 'Content-Type': 'application/json' }
     })
     .then(response => response.json())
     .then(result => showStatus('global_status', result.message))
-    .catch(error => showError('global_status', 'Erreur lors du clonage des droits.'));
-}
-
-function handleAddAssetUser(assetId, userId, accessLevel) {
-    fetch('process_access.php', {
-        method: 'POST',
-        body: JSON.stringify({ action: 'addAssetUser', assetId, userId, accessLevel }),
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(response => response.json())
-    .then(result => showStatus('global_status', result.message))
-    .catch(error => showError('global_status', 'Erreur lors de l\'ajout de l\'utilisateur.'));
-}
-
-function handleRemoveAssetUser(assetId, userId) {
-    fetch('process_access.php', {
-        method: 'POST',
-        body: JSON.stringify({ action: 'removeAssetUser', assetId, userId }),
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(response => response.json())
-    .then(result => showStatus('global_status', result.message))
-    .catch(error => showError('global_status', 'Erreur lors du retrait de l\'utilisateur.'));
-}
-
-function grantDepartmentAccess() {
-    const department = document.getElementById('assignDepartment').value;
-    if (department) {
-        fetch('process_access.php', {
-            method: 'POST',
-            body: JSON.stringify({ action: 'grantDepartmentAccess', department }),
-            headers: { 'Content-Type': 'application/json' }
-        })
-        .then(response => response.json())
-        .then(result => showStatus('global_status', result.message))
-        .catch(error => showError('global_status', 'Erreur lors de l\'attribution par département.'));
-    }
-}
-
-// Fonctions utilitaires existantes
-function showLoadingIndicator(show) {
-    // ...
-}
-
-function clearAllStatus() {
-    // ...
+    .catch(error => showError('global_status', 'Erreur lors du changement de rôle : ' + error));
 }
 
 function showStatus(id, message) {
-    // ...
+    const element = document.getElementById(id);
+    element.innerHTML = `<div class="alert alert-success">${message}</div>`;
+    setTimeout(() => element.innerHTML = '', 5000);
 }
 
 function showError(id, message) {
-    // ...
+    const element = document.getElementById(id);
+    element.innerHTML = `<div class="alert alert-danger">${message}</div>`;
+    setTimeout(() => element.innerHTML = '', 5000);
 }
-
-document.addEventListener('DOMContentLoaded', initValidationActions);

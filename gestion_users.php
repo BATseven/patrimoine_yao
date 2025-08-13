@@ -13,6 +13,20 @@ if (!isset($_SESSION['user_id'])) {
 $userRole = $_SESSION['role'];
 $userName = $_SESSION['full_name'];
 $dateTime = date('H:i A \o\n l, F j, Y', time());
+
+// Utiliser la connexion PDO globale
+global $pdo;
+
+try {
+    if (!$pdo) {
+        $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8", DB_USER, DB_PASS);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    }
+    $stmt = $pdo->query("SELECT id, full_name, email, role, is_verified AS status FROM users");
+    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    die("Erreur de requête : " . $e->getMessage() . " - Vérifiez config.php et la base de données.");
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -91,6 +105,25 @@ $dateTime = date('H:i A \o\n l, F j, Y', time());
         .user-details.active {
             display: block;
         }
+        .modify-form {
+            display: none;
+            margin-top: 10px;
+            background-color: #ffffff;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .modify-form.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+        }
     </style>
 </head>
 
@@ -110,7 +143,7 @@ $dateTime = date('H:i A \o\n l, F j, Y', time());
         <div class="dashboard-header">
             <div>
                 <h2 class="text-blue">Gestion des Utilisateurs - <?php echo htmlspecialchars($userName); ?></h2>
-                <p class="text-muted">Dernière mise à jour : <?php echo $dateTime; ?></p>
+                <p class="text-muted">Dernière mise à jour: <?php echo $dateTime; ?></p>
             </div>
         </div>
 
@@ -147,20 +180,62 @@ $dateTime = date('H:i A \o\n l, F j, Y', time());
                     </tr>
                 </thead>
                 <tbody>
+                    <?php foreach ($users as $user): 
+                        $nameParts = explode(' ', $user['full_name']);
+                        $nom = $nameParts[0] ?? '';
+                        $prenom = $nameParts[1] ?? '';
+                        $status = $user['status'] ? 'Actif' : 'En attente';
+                    ?>
                     <tr>
-                        <td>Durand</td>
-                        <td>Jean</td>
-                        <td>jean.durand@example.com</td>
-                        <td>Administrateur</td>
-                        <td>Actif</td>
-                        <td>2025-08-10 14:30</td>
+                        <td><?php echo htmlspecialchars($nom); ?></td>
+                        <td><?php echo htmlspecialchars($prenom); ?></td>
+                        <td><?php echo htmlspecialchars($user['email']); ?></td>
+                        <td><?php echo htmlspecialchars($user['role'] === 'admin' ? 'Administrateur' : 'Utilisateur'); ?></td>
+                        <td><?php echo htmlspecialchars($status); ?></td>
+                        <td>N/A</td>
                         <td>
-                            <button class="btn btn-primary btn-action" onclick="showUserDetails(this)">Détails</button>
-                            <button class="btn btn-warning btn-action" onclick="modifyUser(this)">Modifier</button>
-                            <button class="btn btn-danger btn-action" onclick="deleteUser(this)">Supprimer</button>
+                            <form action="delete.php" method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');">
+                                <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                                <button type="submit" class="btn btn-danger btn-action">Supprimer</button>
+                            </form>
+                            <button class="btn btn-warning btn-action" onclick="showModifyForm(<?php echo $user['id']; ?>, '<?php echo addslashes($user['full_name']); ?>', '<?php echo addslashes($user['email']); ?>', '<?php echo $user['role']; ?>', <?php echo $user['status'] ? 1 : 0; ?>)">Modifier</button>
+                            <button class="btn btn-primary btn-action" onclick="showUserDetails(this, <?php echo $user['id']; ?>)">Détails</button>
                         </td>
                     </tr>
-                    <!-- Ajouter d'autres lignes dynamiquement avec PHP ou JS -->
+                    <tr class="modify-form" id="modify-form-<?php echo $user['id']; ?>">
+                        <td colspan="7">
+                            <form action="modifier.php" method="POST" onsubmit="return confirm('Êtes-vous sûr de vouloir modifier cet utilisateur ?');" class="row g-3">
+                                <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                                <div class="col-md-6 form-group">
+                                    <label for="full_name_<?php echo $user['id']; ?>">Nom complet :</label>
+                                    <input type="text" name="full_name" id="full_name_<?php echo $user['id']; ?>" value="<?php echo htmlspecialchars($user['full_name']); ?>" class="form-control" required>
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    <label for="email_<?php echo $user['id']; ?>">Email :</label>
+                                    <input type="email" name="email" id="email_<?php echo $user['id']; ?>" value="<?php echo htmlspecialchars($user['email']); ?>" class="form-control" required>
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    <label for="role_<?php echo $user['id']; ?>">Rôle :</label>
+                                    <select name="role" id="role_<?php echo $user['id']; ?>" class="form-control" required>
+                                        <option value="user" <?php echo $user['role'] === 'user' ? 'selected' : ''; ?>>Utilisateur</option>
+                                        <option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>Administrateur</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    <label for="is_verified_<?php echo $user['id']; ?>">Vérifié :</label>
+                                    <select name="is_verified" id="is_verified_<?php echo $user['id']; ?>" class="form-control" required>
+                                        <option value="0" <?php echo !$user['status'] ? 'selected' : ''; ?>>Non</option>
+                                        <option value="1" <?php echo $user['status'] ? 'selected' : ''; ?>>Oui</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 text-end">
+                                    <button type="submit" class="btn btn-primary btn-action">Sauvegarder</button>
+                                    <button type="button" class="btn btn-secondary btn-action" onclick="hideModifyForm(<?php echo $user['id']; ?>)">Annuler</button>
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
@@ -168,24 +243,21 @@ $dateTime = date('H:i A \o\n l, F j, Y', time());
         <!-- Détails d’un utilisateur -->
         <div id="userDetails" class="user-details card p-4">
             <h4>Détails de l'utilisateur</h4>
-            <p><strong>Nom :</strong> Jean Durand</p>
-            <p><strong>Email :</strong> jean.durand@example.com</p>
-            <p><strong>Rôle :</strong> Administrateur</p>
-            <p><strong>État :</strong> Actif</p>
+            <p><strong>Nom :</strong> <span id="detailNom"></span></p>
+            <p><strong>Email :</strong> <span id="detailEmail"></span></p>
+            <p><strong>Rôle :</strong> <span id="detailRole"></span></p>
+            <p><strong>État :</strong> <span id="detailStatus"></span></p>
             <h5>Historique de connexion</h5>
-            <ul>
-                <li>2025-08-10 14:30</li>
-                <li>2025-08-09 09:15</li>
+            <ul id="connexionHistory">
+                <li>N/A</li>
             </ul>
             <h5>Actions récentes</h5>
-            <ul>
-                <li>Ajout de document : 2025-08-10</li>
-                <li>Modification patrimoine : 2025-08-09</li>
+            <ul id="recentActions">
+                <li>N/A</li>
             </ul>
             <h5>Dossiers / Biens gérés</h5>
-            <ul>
-                <li>Bien #123</li>
-                <li>Dossier #456</li>
+            <ul id="managedAssets">
+                <li>N/A</li>
             </ul>
             <button class="btn btn-primary mt-2" onclick="hideUserDetails()">Fermer</button>
         </div>
@@ -209,6 +281,8 @@ $dateTime = date('H:i A \o\n l, F j, Y', time());
             <p>Statistiques : 15 documents ajoutés, 5 biens gérés</p>
         </div>
 
+        <!-- Zone de statut (masquée) -->
+        <div id="global_status" class="mt-3" style="display:none;"></div>
     </div>
 
     <!-- Vendor JS Files -->
@@ -217,27 +291,62 @@ $dateTime = date('H:i A \o\n l, F j, Y', time());
     <script>
         lucide.createIcons();
 
-        function showUserDetails(btn) {
+        function showUserDetails(btn, userId) {
             const row = btn.closest('tr');
-            const details = document.getElementById('userDetails');
-            details.querySelector('strong:contains("Nom")').nextSibling.textContent = row.cells[0].textContent;
-            details.querySelector('strong:contains("Email")').nextSibling.textContent = row.cells[2].textContent;
-            details.querySelector('strong:contains("Rôle")').nextSibling.textContent = row.cells[3].textContent;
-            details.querySelector('strong:contains("État")').nextSibling.textContent = row.cells[4].textContent;
-            details.classList.add('active');
+            document.getElementById('detailNom').textContent = row.cells[0].textContent;
+            document.getElementById('detailEmail').textContent = row.cells[2].textContent;
+            document.getElementById('detailRole').textContent = row.cells[3].textContent;
+            document.getElementById('detailStatus').textContent = row.cells[4].textContent;
+            document.getElementById('userDetails').classList.add('active');
         }
 
         function hideUserDetails() {
             document.getElementById('userDetails').classList.remove('active');
         }
 
-        // Placeholders pour les appels aux fonctions d'action.php
-        function createUser() { handleCreateUser(); }
-        function modifyUser() { handleModifyUser(); }
-        function resetPassword() { handleResetPassword(); }
-        function toggleAccount() { handleToggleAccount(); }
-        function deleteUser() { handleDeleteUser(); }
-        function changeRole() { handleChangeRole(); }
+        function showModifyForm(userId, fullName, email, role, isVerified) {
+            const form = document.getElementById('modify-form-' + userId);
+            document.getElementById('full_name_' + userId).value = fullName;
+            document.getElementById('email_' + userId).value = email;
+            document.getElementById('role_' + userId).value = role;
+            document.getElementById('is_verified_' + userId).value = isVerified;
+            form.classList.add('active');
+        }
+
+        function hideModifyForm(userId) {
+            const form = document.getElementById('modify-form-' + userId);
+            form.classList.remove('active');
+        }
+
+        function modifyUser(userId) {
+            handleModifyUser(userId);
+        }
+
+        function createUser() {
+            const fullName = prompt("Entrez le nom complet :");
+            const email = prompt("Entrez l'email :");
+            const password = prompt("Entrez le mot de passe :");
+            const role = prompt("Rôle (admin ou user) :");
+            if (fullName && email && password && role) {
+                handleCreateUser(fullName, email, password, role);
+            }
+        }
+
+        function resetPassword() {
+            const userId = prompt("Entrez l'ID de l'utilisateur :");
+            if (userId) handleResetPassword(userId);
+        }
+
+        function toggleAccount() {
+            const userId = prompt("Entrez l'ID de l'utilisateur :");
+            if (userId) handleToggleAccount(userId);
+        }
+
+        function changeRole() {
+            const userId = prompt("Entrez l'ID de l'utilisateur :");
+            const newRole = prompt("Nouveau rôle (admin ou user) :");
+            if (userId && newRole) handleChangeRole(userId, newRole);
+        }
     </script>
 </body>
 
