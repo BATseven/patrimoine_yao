@@ -20,20 +20,22 @@
         .file-input::-webkit-file-upload-button {
             background-color: #10b981;
             color: white;
-            padding: 8px 16px;
+            padding: 6px 12px; /* Réduction de la taille */
             border-radius: 4px;
             border: none;
             cursor: pointer;
+            font-size: 0.875rem; /* Police plus petite */
         }
         .file-input::-webkit-file-upload-button:hover {
             background-color: #059669;
         }
         .status-message {
             display: none;
-            padding: 10px;
-            margin-top: 10px;
+            padding: 8px; /* Réduction de l'espacement */
+            margin-top: 8px;
             border-radius: 4px;
             text-align: center;
+            font-size: 0.875rem; /* Police plus petite */
         }
         .status-message.success {
             display: block;
@@ -48,66 +50,48 @@
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-2xl">
-        <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Validation de Documents</h2>
+    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md"> <!-- Réduction à max-w-md et padding -->
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Validation de Documents</h2> <!-- Titre plus petit -->
         <form id="validationForm" action="process_validation.php" method="post" enctype="multipart/form-data">
-            <div class="space-y-6">
+            <div class="space-y-4"> <!-- Réduction de l'espacement vertical -->
                 <div class="form-group hidden">
-                    <label for="piece_identite" class="block text-sm font-medium text-gray-700 mb-2">Pièce d'identité (CNI, Passeport) <span class="text-red-500">*</span></label>
+                    <label for="piece_identite" class="block text-sm font-medium text-gray-700 mb-1">Pièce d'identité (CNI, Passeport) <span class="text-red-500">*</span></label>
                     <input type="file" id="piece_identite" name="piece_identite" accept=".pdf,.jpg,.png" class="file-input w-full text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" required>
                     <div class="status-message" id="piece_identite_status"></div>
                 </div>
-
                 <div class="form-group hidden">
-                    <label for="justificatif_domicile" class="block text-sm font-medium text-gray-700 mb-2">Justificatif de domicile <span class="text-red-500">*</span></label>
+                    <label for="justificatif_domicile" class="block text-sm font-medium text-gray-700 mb-1">Justificatif de domicile <span class="text-red-500">*</span></label>
                     <input type="file" id="justificatif_domicile" name="justificatif_domicile" accept=".pdf,.jpg,.png" class="file-input w-full text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" required>
                     <div class="status-message" id="justificatif_domicile_status"></div>
                 </div>
-
                 <div class="form-group hidden">
-                    <label for="releve_bancaire" class="block text-sm font-medium text-gray-700 mb-2">Relevé bancaire <span class="text-red-500">*</span></label>
-                    <input type="file" id="releve_bancaire" name="releve_bancaire" accept=".pdf,.jpg,.png" class="file-input w-full text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" required>
-                    <div class="status-message" id="releve_bancaire_status"></div>
+                    <label for="contrat_location" class="block text-sm font-medium text-gray-700 mb-1">Contrat de location ou propriété</label>
+                    <input type="file" id="contrat_location" name="contrat_location" accept=".pdf,.jpg,.png" class="file-input w-full text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <div class="status-message" id="contrat_location_status"></div>
                 </div>
-
                 <div class="form-group hidden">
-                    <label for="declaration_fiscale" class="block text-sm font-medium text-gray-700 mb-2">Déclaration fiscale (Avis d'imposition) <span class="text-red-500">*</span></label>
-                    <input type="file" id="declaration_fiscale" name="declaration_fiscale" accept=".pdf,.jpg,.png" class="file-input w-full text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" required>
-                    <div class="status-message" id="declaration_fiscale_status"></div>
+                    <label for="bulletin_salaire" class="block text-sm font-medium text-gray-700 mb-1">Bulletin de salaire</label>
+                    <input type="file" id="bulletin_salaire" name="bulletin_salaire" accept=".pdf,.jpg,.png" class="file-input w-full text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <div class="status-message" id="bulletin_salaire_status"></div>
                 </div>
-
                 <div class="form-group hidden">
-                    <label for="titre_propriete" class="block text-sm font-medium text-gray-700 mb-2">Titre de propriété (Immobilier)</label>
-                    <input type="file" id="titre_propriete" name="titre_propriete" accept=".pdf,.jpg,.png" class="file-input w-full text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                    <div class="status-message" id="titre_propriete_status"></div>
-                </div>
-
-                <div class="form-group hidden">
-                    <label for="contrat_financier" class="block text-sm font-medium text-gray-700 mb-2">Contrat financier (Assurance-vie, PEA, etc.)</label>
-                    <input type="file" id="contrat_financier" name="contrat_financier" accept=".pdf,.jpg,.png" class="file-input w-full text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                    <div class="status-message" id="contrat_financier_status"></div>
-                </div>
-
-                <div class="form-group hidden">
-                    <label for="document_notarie" class="block text-sm font-medium text-gray-700 mb-2">Document notarié (Successions, Donations)</label>
+                    <label for="document_notarie" class="block text-sm font-medium text-gray-700 mb-1">Document notarié</label>
                     <input type="file" id="document_notarie" name="document_notarie" accept=".pdf,.jpg,.png" class="file-input w-full text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                     <div class="status-message" id="document_notarie_status"></div>
                 </div>
-
                 <div class="form-group hidden">
-                    <label for="releve_portefeuille" class="block text-sm font-medium text-gray-700 mb-2">Relevé de portefeuille (Actions, Obligations)</label>
+                    <label for="releve_portefeuille" class="block text-sm font-medium text-gray-700 mb-1">Relevé de portefeuille (Actions, Obligations)</label>
                     <input type="file" id="releve_portefeuille" name="releve_portefeuille" accept=".pdf,.jpg,.png" class="file-input w-full text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                     <div class="status-message" id="releve_portefeuille_status"></div>
                 </div>
-
                 <div class="form-group hidden">
-                    <label for="mandat_procuration" class="block text-sm font-medium text-gray-700 mb-2">Mandat ou procuration</label>
+                    <label for="mandat_procuration" class="block text-sm font-medium text-gray-700 mb-1">Mandat ou procuration</label>
                     <input type="file" id="mandat_procuration" name="mandat_procuration" accept=".pdf,.jpg,.png" class="file-input w-full text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                     <div class="status-message" id="mandat_procuration_status"></div>
                 </div>
 
                 <div class="text-center">
-                    <button type="submit" class="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition duration-300 ease-in-out transform hover:scale-105">Soumettre les documents</button>
+                    <button type="submit" class="bg-emerald-600 text-white px-5 py-2 rounded-lg hover:bg-emerald-700 transition duration-300 ease-in-out transform hover:scale-105 text-sm">Soumettre les documents</button> <!-- Réduction de la taille -->
                 </div>
             </div>
         </form>

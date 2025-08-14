@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
     $password = $_POST['password'];
 
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email");
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email AND is_active = 1");
     $stmt->execute(['email' => $email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -28,20 +28,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['full_name'] = $user['full_name'];
                 $_SESSION['role'] = $user['role'];
-                header("Location: dashboard.php");
+                // Vérifier si c'est la première connexion (optionnel)
+                if ($user['password'] === 'initial_password_hash') { // Remplacez par une logique réelle si nécessaire
+                    header("Location: change_password.php"); // Rediriger vers une page de changement de mot de passe
+                } else {
+                    header("Location: dashboard.php");
+                }
                 exit();
             }
         } else {
-            // Si password_verify échoue, tenter une vérification avec une ancienne méthode (ex. md5)
-            if (md5($password) === $user['password']) {
-                // Ancien mot de passe détecté, forcer une réinitialisation
-                $error = "Votre mot de passe doit être réinitialisé pour des raisons de sécurité. <a href='forgot_password.php'>Cliquez ici</a>.";
-            } else {
-                $error = "Email ou mot de passe incorrect.";
-            }
+            $error = "Email ou mot de passe incorrect.";
         }
     } else {
-        $error = "Aucun compte associé à cet email.";
+        $error = "Aucun compte actif associé à cet email.";
     }
 }
 ?>
@@ -52,8 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
   <title>Connexion - Patrimoine Plus</title>
-  <meta name="description" content="Connectez-vous à votre espace client Patrimoine Plus pour gérer votre patrimoine.">
-  <meta name="keywords" content="connexion, gestion de patrimoine, client portal">
+  <meta name="description" content="Connectez-vous à votre espace client Patrimoine Plus.">
+  <meta name="keywords" content="connexion, patrimoine, gestion">
 
   <!-- Favicons -->
   <link href="assets/img/favicon.png" rel="icon">
@@ -62,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Vendor CSS Files -->
   <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -71,33 +70,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <!-- Main CSS File -->
   <link href="assets/css/main.css" rel="stylesheet">
 
-  <!-- Custom CSS for Login Form -->
   <style>
+    body {
+      background-color: #f3f4f6;
+      font-family: 'Inter', sans-serif;
+    }
+    .main {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     .login-container {
-      background: #ffffff;
+      background: white;
       padding: 2rem;
       border-radius: 10px;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
-    .login-header {
-      border-bottom: 2px solid #1e3a8a;
-      padding-bottom: 1rem;
-      margin-bottom: 1.5rem;
+    .login-header h2 {
+      color: #1e3a8a;
+      margin-bottom: 0.5rem;
+    }
+    .text-blue {
+      color: #1e3a8a;
     }
     .btn-login {
       background-color: #1e3a8a;
       color: white;
       border: none;
-      padding: 0.75rem;
     }
     .btn-login:hover {
       background-color: #152e6f;
-    }
-    .form-control {
-      border-radius: 5px;
-    }
-    .text-blue {
-      color: #1e3a8a;
     }
     .error {
       color: red;
@@ -108,7 +111,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </head>
 
 <body>
-
   <main class="main d-flex align-items-center justify-content-center" style="min-height: 100vh; background-color: #f3f4f6;">
     <div class="container">
       <div class="row justify-content-center">

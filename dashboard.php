@@ -12,7 +12,29 @@ if (!isset($_SESSION['user_id'])) {
 
 $userRole = $_SESSION['role'];
 $userName = $_SESSION['full_name'];
-$dateTime = date('H:i A \o\n l, F j, Y', time()); // Exemple : 02:30 PM on Monday, August 11, 2025
+// Mise à jour de la date et heure avec le fuseau GMT
+date_default_timezone_set('GMT');
+$dateTime = date('H:i A \o\n l, F j, Y', time()); // 09:45 AM GMT, Thursday, August 14, 2025
+
+// Connexion à la base de données
+global $pdo;
+try {
+    if (!$pdo) {
+        $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8", DB_USER, DB_PASS);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    }
+
+    // Nombre d'utilisateurs
+    $stmt = $pdo->query("SELECT COUNT(*) FROM users");
+    $userCount = $stmt->fetchColumn();
+
+    // Nombre de patrimoines
+    $stmt = $pdo->query("SELECT COUNT(*) FROM patrimoines");
+    $patrimoineCount = $stmt->fetchColumn();
+
+} catch (PDOException $e) {
+    die("Erreur de connexion : " . $e->getMessage());
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -42,7 +64,6 @@ $dateTime = date('H:i A \o\n l, F j, Y', time()); // Exemple : 02:30 PM on Monda
   <!-- Main CSS File -->
   <link href="assets/css/main.css" rel="stylesheet">
 
-  <!-- Custom CSS for Dashboard -->
   <style>
     body {
       background-color: #f8f9fa;
@@ -57,7 +78,6 @@ $dateTime = date('H:i A \o\n l, F j, Y', time()); // Exemple : 02:30 PM on Monda
       background-color: #1e3a8a;
       color: white;
       padding-top: 20px;
-      transition: all 0.3s;
     }
     .sidebar a {
       color: white;
@@ -74,92 +94,31 @@ $dateTime = date('H:i A \o\n l, F j, Y', time()); // Exemple : 02:30 PM on Monda
       margin-left: 250px;
       padding: 20px;
     }
-    .dashboard-header {
-      background-color: white;
-      padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      margin-bottom: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
     .card {
       border: none;
-      border-radius: 15px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      transition: transform 0.2s;
-      height: 100%;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
     }
     .card:hover {
       transform: translateY(-5px);
     }
-    .card-title {
-      color: #1e3a8a;
-    }
-    .btn-primary {
-      background-color: #1e3a8a;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 20px;
-      font-size: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .btn-primary:hover {
-      background-color: #152e6f;
-    }
-    .btn-success {
-      background-color: #28a745;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 20px;
-      font-size: 1rem;
-    }
-    .btn-success:hover {
-      background-color: #218838;
-    }
-    .logout-btn {
-      background-color: #dc3545;
-      color: white;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-    }
-    .logout-btn:hover {
-      background-color: #c82333;
-    }
-    .text-blue {
-      color: #1e3a8a;
-    }
-    .text-muted {
-      color: #6c757d;
-      font-size: 0.9rem;
-    }
-    .widget {
-      background-color: white;
-      padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      margin-bottom: 20px;
-    }
-    .notification-bell {
-      font-size: 1.5rem;
-      cursor: pointer;
-      color: #1e3a8a;
-    }
-    .notification-bell:hover {
-      color: #152e6f;
-    }
     .chart-placeholder {
-      height: 300px;
+      height: 100px;
       background-color: #e9ecef;
-      border-radius: 10px;
+      border-radius: 5px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #6c757d;
+      margin: 10px 0;
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-250px);
+      }
+      .content {
+        margin-left: 0;
+      }
     }
   </style>
 </head>
@@ -167,95 +126,65 @@ $dateTime = date('H:i A \o\n l, F j, Y', time()); // Exemple : 02:30 PM on Monda
 <body>
 
   <div class="sidebar">
-    <h4 class="text-center"><?php echo ($userRole == 'admin') ? 'Menu Admin' : 'Menu'; ?></h4>
-    <a href="dashboard.php"><i data-lucide="home"></i> Accueil</a>
+    <h4 class="text-center">Menu <?php echo ($userRole == 'admin') ? 'Admin' : ''; ?></h4>
     <?php if ($userRole == 'admin'): ?>
+      <a href="dashboard.php"><i data-lucide="home"></i> Accueil</a>
       <a href="gestion_users.php"><i data-lucide="users"></i> Gestion Utilisateurs</a>
+      <a href="validation_doc.php"><i data-lucide="file-check"></i> Validation Documents</a>
+      <a href="actifs.php"><i data-lucide="briefcase"></i> Gestion des Actifs</a>
+      <a href="patrimoine.php"><i data-lucide="database"></i>Patrimoines</a>
+      <a href="#"><i data-lucide="bar-chart-2"></i> Statistiques Globales</a>
+      <a href="#"><i data-lucide="settings"></i> Paramétrage</a>
+    <?php else: ?>
+      <a href="dashboard.php"><i data-lucide="home"></i> Accueil</a>
+      <a href="actifs.php"><i data-lucide="briefcase"></i> Gestion des Actifs</a>
+      <a href="#"><i data-lucide="home"></i> Mon Patrimoine</a>
     <?php endif; ?>
-    <a href="actifs.php"><i data-lucide="briefcase"></i> Gestion Actifs</a>
-    <a href="validation_doc.php"><i data-lucide="file-check"></i> Validation Documents</a>
-    <a href="#"><i data-lucide="database"></i> Accès Patrimoines</a>
-    <a href="#"><i data-lucide="bar-chart-2"></i> Statistiques Globales</a>
-    <a href="#"><i data-lucide="settings"></i> Paramétrage</a>
   </div>
 
   <div class="content">
     <div class="dashboard-header">
-      <div>
-        <h2 class="text-blue">Tableau de Bord - <?php echo ($userRole == 'admin') ? 'Admin' : ''; ?> <?php echo htmlspecialchars($userName); ?></h2>
-        <p class="text-muted">Dernière mise à jour : <?php echo $dateTime; ?></p>
+      <h2 class="text-blue">Tableau de Bord - <?php echo htmlspecialchars($userName); ?></h2>
+      <p class="text-muted">Dernière mise à jour : <?php echo $dateTime; ?></p>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4 mb-4">
+        <div class="card p-4 h-100">
+          <h4 class="card-title">Nombre d'Utilisateurs</h4>
+          <p class="card-text"><strong><?php echo $userCount; ?></strong> utilisateurs</p>
+          <a href="gestion_users.php" class="btn btn-primary"><i data-lucide="users"></i> Gérer</a>
+        </div>
       </div>
-      <div>
-        <i class="notification-bell" data-lucide="bell" onclick="alert('Alertes : Échéance fiscale demain, 10 nouveaux documents.')"></i>
+      <div class="col-md-4 mb-4">
+        <div class="card p-4 h-100">
+          <h4 class="card-title">Valeur Totale des Patrimoines</h4>
+          <p class="card-text"><strong>N/A</strong> (Ajouter colonne 'value')</p>
+          <a href="#" class="btn btn-primary"><i data-lucide="database"></i> Voir</a>
+        </div>
+      </div>
+      <div class="col-md-4 mb-4">
+        <div class="card p-4 h-100">
+          <h4 class="card-title">Investissements en Cours</h4>
+          <p class="card-text"><strong>N/A</strong> (Ajouter colonne 'end_date')</p>
+          <a href="#" class="btn btn-primary"><i data-lucide="trending-up"></i> Analyser</a>
+        </div>
       </div>
     </div>
 
     <div class="row">
-      <!-- Widgets Visuels -->
-      <div class="row mb-4">
-        <div class="col-md-3">
-          <div class="widget">
-            <h6>Valeur Totale Patrimoines</h6>
-            <p class="text-blue h4">€5,000,000 💰</p>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="widget">
-            <h6>Nombre d'Utilisateurs</h6>
-            <p class="text-blue h4">50 🏠</p>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="widget">
-            <h6>Investissements en Cours</h6>
-            <p class="text-blue h4">€1,200,000 📈</p>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="widget">
-            <h6>Progression Validation</h6>
-            <p class="text-blue h4">80% 🎯</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Accueil Personnalisé -->
-      <div class="col-12 mb-4">
-        <div class="card p-4 h-100">
-          <h4 class="card-title">Accueil <?php echo ($userRole == 'admin') ? 'Admin' : ''; ?></h4>
-          <p class="card-text">Résumé des activités, alertes, et statistiques récentes.</p>
-          <ul>
-            <li>Total utilisateurs actifs : 45</li>
-            <li>Alertes : 10 documents en attente</li>
-            <li>Statistique : +15% ce mois</li>
-          </ul>
-          <a href="#" class="btn btn-success"><i data-lucide="eye"></i> Voir Détails</a>
-        </div>
-      </div>
-
-      <?php if ($userRole == 'admin'): ?>
-        <div class="col-md-4 mb-4">
-          <div class="card p-4 h-100">
-            <h4 class="card-title">Gestion des Utilisateurs</h4>
-            <p class="card-text">Consultez et modifiez les comptes.</p>
-            <a href="gestion_users.php" class="btn btn-primary"><i data-lucide="users"></i> Gérer</a>
-          </div>
-        </div>
-      <?php endif; ?>
-
       <div class="col-md-4 mb-4">
         <div class="card p-4 h-100">
-          <h4 class="card-title">Gestion Actifs</h4>
-          <p class="card-text">Gérez vos actifs et analysez leurs performances.</p>
-          <a href="actifs.php" class="btn btn-primary"><i data-lucide="briefcase"></i> Gérer</a>
-        </div>
-      </div>
-
-      <div class="col-md-4 mb-4">
-        <div class="card p-4 h-100">
-          <h4 class="card-title">Validation des Documents</h4>
-          <p class="card-text">Vérifiez et approuvez les documents.</p>
+          <h4 class="card-title">Progression de Validation</h4>
+          <p class="card-text"><strong>N/A</strong> (Ajouter colonne 'is_validated')</p>
           <a href="validation_doc.php" class="btn btn-primary"><i data-lucide="file-check"></i> Valider</a>
+        </div>
+      </div>
+      <div class="col-md-4 mb-4">
+        <div class="card p-4 h-100">
+          <h4 class="card-title">Nombre de Patrimoines</h4>
+          <p class="card-text"><strong><?php echo $patrimoineCount; ?></strong> patrimoines</p>
+          <a href="#" class="btn btn-primary"><i data-lucide="database"></i> Voir</a>
         </div>
       </div>
       <div class="col-md-4 mb-4">
@@ -265,6 +194,9 @@ $dateTime = date('H:i A \o\n l, F j, Y', time()); // Exemple : 02:30 PM on Monda
           <a href="#" class="btn btn-primary"><i data-lucide="database"></i> Voir</a>
         </div>
       </div>
+    </div>
+
+    <div class="row">
       <div class="col-md-4 mb-4">
         <div class="card p-4 h-100">
           <h4 class="card-title">Statistiques Globales</h4>
@@ -280,11 +212,18 @@ $dateTime = date('H:i A \o\n l, F j, Y', time()); // Exemple : 02:30 PM on Monda
           <a href="#" class="btn btn-primary"><i data-lucide="settings"></i> Configurer</a>
         </div>
       </div>
+      <div class="col-md-4 mb-4">
+        <div class="card p-4 h-100">
+          <h4 class="card-title">Gestion des Actifs</h4>
+          <p class="card-text">Gérez et analysez vos actifs.</p>
+          <a href="actifs.php" class="btn btn-primary"><i data-lucide="briefcase"></i> Gérer</a>
+        </div>
+      </div>
     </div>
 
     <div class="text-center mt-4">
       <form action="logout.php" method="post" style="display:inline;">
-        <button type="submit" class="logout-btn">Déconnexion</button>
+        <button type="submit" class="btn btn-danger">Déconnexion</button>
       </form>
     </div>
   </div>

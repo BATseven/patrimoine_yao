@@ -12,7 +12,8 @@ if (!isset($_SESSION['user_id'])) {
 
 $userRole = $_SESSION['role'];
 $userName = $_SESSION['full_name'];
-$dateTime = date('H:i A \o\n l, F j, Y', time());
+date_default_timezone_set('GMT');
+$dateTime = date('H:i A \o\n l, F j, Y', time()); // 12:00 PM GMT, Thursday, August 14, 2025
 
 // Utiliser la connexion PDO globale
 global $pdo;
@@ -22,7 +23,7 @@ try {
         $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8", DB_USER, DB_PASS);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
-    $stmt = $pdo->query("SELECT id, full_name, email, role, is_verified AS status FROM users");
+    $stmt = $pdo->query("SELECT id, full_name, email, role, is_verified AS status, is_active FROM users");
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     die("Erreur de requête : " . $e->getMessage() . " - Vérifiez config.php et la base de données.");
@@ -60,6 +61,8 @@ try {
         body {
             background-color: #f8f9fa;
             font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
         }
         .sidebar {
             width: 250px;
@@ -70,6 +73,7 @@ try {
             background-color: #1e3a8a;
             color: white;
             padding-top: 20px;
+            z-index: 1000;
         }
         .sidebar a {
             color: white;
@@ -85,209 +89,98 @@ try {
         .content {
             margin-left: 250px;
             padding: 20px;
-        }
-        .table-responsive {
-            margin-bottom: 20px;
+            min-height: 100vh;
         }
         .card {
             border: none;
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        .btn-action {
-            padding: 5px 10px;
-            font-size: 0.9rem;
-        }
-        .user-details {
+        .details-section {
             display: none;
-            margin-top: 20px;
         }
-        .user-details.active {
+        .details-section.active {
             display: block;
         }
-        .modify-form {
-            display: none;
-            margin-top: 10px;
-            background-color: #ffffff;
-            padding: 15px;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .modify-form.active {
-            display: block;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            font-weight: bold;
-            margin-bottom: 5px;
-            display: block;
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-250px);
+            }
+            .content {
+                margin-left: 0;
+            }
         }
     </style>
 </head>
 
 <body>
-
     <div class="sidebar">
         <h4 class="text-center">Menu Admin</h4>
         <a href="dashboard.php"><i data-lucide="home"></i> Accueil</a>
         <a href="gestion_users.php"><i data-lucide="users"></i> Gestion Utilisateurs</a>
         <a href="validation_doc.php"><i data-lucide="file-check"></i> Validation Documents</a>
-        <a href="#"><i data-lucide="database"></i> Accès Patrimoines</a>
+        <a href="patrimoine.php"><i data-lucide="database"></i> Accès Patrimoines</a>
         <a href="#"><i data-lucide="bar-chart-2"></i> Statistiques Globales</a>
         <a href="#"><i data-lucide="settings"></i> Paramétrage</a>
     </div>
 
     <div class="content">
         <div class="dashboard-header">
-            <div>
-                <h2 class="text-blue">Gestion des Utilisateurs - <?php echo htmlspecialchars($userName); ?></h2>
-                <p class="text-muted">Dernière mise à jour: <?php echo $dateTime; ?></p>
-            </div>
+            <h2 class="text-blue">Gestion des Utilisateurs - <?php echo htmlspecialchars($userName); ?></h2>
+            <p class="text-muted">Dernière mise à jour: <?php echo $dateTime; ?></p>
+            <button class="btn btn-primary mb-3" onclick="createUser()"><i data-lucide="plus"></i> Créer un Utilisateur</button>
         </div>
 
-        <!-- Filtres et recherche -->
-        <div class="mb-4">
-            <input type="text" id="searchUser" class="form-control w-25" placeholder="Rechercher par nom ou email...">
-            <select id="filterRole" class="form-control w-25 mx-2">
-                <option value="">Tous les rôles</option>
-                <option value="administrateur">Administrateur</option>
-                <option value="gestionnaire">Gestionnaire</option>
-                <option value="consultant">Consultant</option>
-                <option value="client">Client</option>
-            </select>
-            <select id="filterStatus" class="form-control w-25">
-                <option value="">Tous les états</option>
-                <option value="actif">Actif</option>
-                <option value="suspendu">Suspendu</option>
-                <option value="en attente">En attente</option>
-            </select>
-        </div>
-
-        <!-- Liste des utilisateurs -->
-        <div class="table-responsive">
+        <div class="card p-4 mb-4">
+            <h4 class="card-title">Liste des Utilisateurs</h4>
             <table class="table table-striped">
                 <thead>
                     <tr>
-                        <th>Nom</th>
-                        <th>Prénom</th>
+                        <th>Nom Complet</th>
                         <th>Email</th>
                         <th>Rôle</th>
-                        <th>État</th>
-                        <th>Dernière Connexion</th>
+                        <th>Statut</th>
+                        <th>Actif</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($users as $user): 
-                        $nameParts = explode(' ', $user['full_name']);
-                        $nom = $nameParts[0] ?? '';
-                        $prenom = $nameParts[1] ?? '';
-                        $status = $user['status'] ? 'Actif' : 'En attente';
-                    ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($nom); ?></td>
-                        <td><?php echo htmlspecialchars($prenom); ?></td>
-                        <td><?php echo htmlspecialchars($user['email']); ?></td>
-                        <td><?php echo htmlspecialchars($user['role'] === 'admin' ? 'Administrateur' : 'Utilisateur'); ?></td>
-                        <td><?php echo htmlspecialchars($status); ?></td>
-                        <td>N/A</td>
-                        <td>
-                            <form action="delete.php" method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');">
-                                <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-                                <button type="submit" class="btn btn-danger btn-action">Supprimer</button>
-                            </form>
-                            <button class="btn btn-warning btn-action" onclick="showModifyForm(<?php echo $user['id']; ?>, '<?php echo addslashes($user['full_name']); ?>', '<?php echo addslashes($user['email']); ?>', '<?php echo $user['role']; ?>', <?php echo $user['status'] ? 1 : 0; ?>)">Modifier</button>
-                            <button class="btn btn-primary btn-action" onclick="showUserDetails(this, <?php echo $user['id']; ?>)">Détails</button>
-                        </td>
-                    </tr>
-                    <tr class="modify-form" id="modify-form-<?php echo $user['id']; ?>">
-                        <td colspan="7">
-                            <form action="modifier.php" method="POST" onsubmit="return confirm('Êtes-vous sûr de vouloir modifier cet utilisateur ?');" class="row g-3">
-                                <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-                                <div class="col-md-6 form-group">
-                                    <label for="full_name_<?php echo $user['id']; ?>">Nom complet :</label>
-                                    <input type="text" name="full_name" id="full_name_<?php echo $user['id']; ?>" value="<?php echo htmlspecialchars($user['full_name']); ?>" class="form-control" required>
-                                </div>
-                                <div class="col-md-6 form-group">
-                                    <label for="email_<?php echo $user['id']; ?>">Email :</label>
-                                    <input type="email" name="email" id="email_<?php echo $user['id']; ?>" value="<?php echo htmlspecialchars($user['email']); ?>" class="form-control" required>
-                                </div>
-                                <div class="col-md-6 form-group">
-                                    <label for="role_<?php echo $user['id']; ?>">Rôle :</label>
-                                    <select name="role" id="role_<?php echo $user['id']; ?>" class="form-control" required>
-                                        <option value="user" <?php echo $user['role'] === 'user' ? 'selected' : ''; ?>>Utilisateur</option>
-                                        <option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>Administrateur</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6 form-group">
-                                    <label for="is_verified_<?php echo $user['id']; ?>">Vérifié :</label>
-                                    <select name="is_verified" id="is_verified_<?php echo $user['id']; ?>" class="form-control" required>
-                                        <option value="0" <?php echo !$user['status'] ? 'selected' : ''; ?>>Non</option>
-                                        <option value="1" <?php echo $user['status'] ? 'selected' : ''; ?>>Oui</option>
-                                    </select>
-                                </div>
-                                <div class="col-12 text-end">
-                                    <button type="submit" class="btn btn-primary btn-action">Sauvegarder</button>
-                                    <button type="button" class="btn btn-secondary btn-action" onclick="hideModifyForm(<?php echo $user['id']; ?>)">Annuler</button>
-                                </div>
-                            </form>
-                        </td>
-                    </tr>
+                    <?php foreach ($users as $user): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($user['full_name']); ?></td>
+                            <td><?php echo htmlspecialchars($user['email']); ?></td>
+                            <td><?php echo htmlspecialchars($user['role']); ?></td>
+                            <td><?php echo $user['status'] ? 'Vérifié' : 'Non vérifié'; ?></td>
+                            <td><?php echo $user['is_active'] ? 'Oui' : 'Non'; ?></td>
+                            <td>
+                                <button class="btn btn-info btn-sm" onclick="showUserDetails(this, <?php echo $user['id']; ?>)"><i data-lucide="eye"></i> Voir</button>
+                                <button class="btn btn-warning btn-sm" onclick="modifyUser(<?php echo $user['id']; ?>)"><i data-lucide="edit"></i> Modifier</button>
+                                <button class="btn btn-danger btn-sm" onclick="resetPassword(<?php echo $user['id']; ?>)"><i data-lucide="key"></i> Réinitialiser Mot de Passe</button>
+                                <button class="btn btn-secondary btn-sm" onclick="toggleAccount(<?php echo $user['id']; ?>)"><i data-lucide="toggle-<?php echo $user['is_active'] ? 'off' : 'on'; ?>"></i> <?php echo $user['is_active'] ? 'Désactiver' : 'Activer'; ?></button>
+                                <button class="btn btn-primary btn-sm" onclick="changeRole(<?php echo $user['id']; ?>)"><i data-lucide="user-check"></i> Changer Rôle</button>
+                            </td>
+                        </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
 
-        <!-- Détails d’un utilisateur -->
-        <div id="userDetails" class="user-details card p-4">
-            <h4>Détails de l'utilisateur</h4>
+        <div id="userDetails" class="details-section card p-4 mb-4">
+            <h4 class="card-title">Détails de l'Utilisateur</h4>
             <p><strong>Nom :</strong> <span id="detailNom"></span></p>
             <p><strong>Email :</strong> <span id="detailEmail"></span></p>
             <p><strong>Rôle :</strong> <span id="detailRole"></span></p>
-            <p><strong>État :</strong> <span id="detailStatus"></span></p>
-            <h5>Historique de connexion</h5>
-            <ul id="connexionHistory">
-                <li>N/A</li>
-            </ul>
-            <h5>Actions récentes</h5>
-            <ul id="recentActions">
-                <li>N/A</li>
-            </ul>
-            <h5>Dossiers / Biens gérés</h5>
-            <ul id="managedAssets">
-                <li>N/A</li>
-            </ul>
-            <button class="btn btn-primary mt-2" onclick="hideUserDetails()">Fermer</button>
+            <p><strong>Statut :</strong> <span id="detailStatus"></span></p>
+            <button class="btn btn-secondary mt-2" onclick="hideUserDetails()">Fermer</button>
         </div>
 
-        <!-- Actions sur les comptes -->
-        <div class="card p-4 mt-4">
-            <h4>Actions sur les comptes</h4>
-            <button class="btn btn-success" onclick="createUser()">Créer un utilisateur</button>
-            <button class="btn btn-warning" onclick="resetPassword()">Réinitialiser mot de passe</button>
-            <button class="btn btn-info" onclick="toggleAccount()">Activer/Désactiver</button>
-            <button class="btn btn-secondary" onclick="changeRole()">Changer rôle</button>
+        <div class="text-center mt-4">
+            <a href="dashboard.php" class="btn btn-secondary">Retour au Tableau de Bord</a>
         </div>
-
-        <!-- Historique & suivi -->
-        <div class="card p-4 mt-4">
-            <h4>Historique & Suivi</h4>
-            <ul>
-                <li>Jean Durand a modifié un patrimoine - 2025-08-10 14:30</li>
-                <li>Tentative de connexion échouée - 2025-08-09 08:00</li>
-            </ul>
-            <p>Statistiques : 15 documents ajoutés, 5 biens gérés</p>
-        </div>
-
-        <!-- Zone de statut (masquée) -->
-        <div id="global_status" class="mt-3" style="display:none;"></div>
     </div>
 
     <!-- Vendor JS Files -->
     <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="action.php"></script>
     <script>
         lucide.createIcons();
 
@@ -304,22 +197,9 @@ try {
             document.getElementById('userDetails').classList.remove('active');
         }
 
-        function showModifyForm(userId, fullName, email, role, isVerified) {
-            const form = document.getElementById('modify-form-' + userId);
-            document.getElementById('full_name_' + userId).value = fullName;
-            document.getElementById('email_' + userId).value = email;
-            document.getElementById('role_' + userId).value = role;
-            document.getElementById('is_verified_' + userId).value = isVerified;
-            form.classList.add('active');
-        }
-
-        function hideModifyForm(userId) {
-            const form = document.getElementById('modify-form-' + userId);
-            form.classList.remove('active');
-        }
-
         function modifyUser(userId) {
-            handleModifyUser(userId);
+            // Placeholder pour modification manuelle (à implémenter si nécessaire)
+            alert('Fonction de modification non implémentée. Utilisez les autres actions pour gérer l\'utilisateur.');
         }
 
         function createUser() {
@@ -328,24 +208,59 @@ try {
             const password = prompt("Entrez le mot de passe :");
             const role = prompt("Rôle (admin ou user) :");
             if (fullName && email && password && role) {
-                handleCreateUser(fullName, email, password, role);
+                fetch('create_user.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `full_name=${encodeURIComponent(fullName)}&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}&role=${encodeURIComponent(role)}`
+                })
+                .then(response => response.text())
+                .then(data => {
+                    alert(data);
+                    window.location.reload();
+                })
+                .catch(error => alert('Erreur : ' + error));
             }
         }
 
-        function resetPassword() {
-            const userId = prompt("Entrez l'ID de l'utilisateur :");
-            if (userId) handleResetPassword(userId);
+        function resetPassword(userId) {
+            if (confirm('Confirmer la réinitialisation du mot de passe ?')) {
+                window.location.href = `forgot_password.php?user_id=${userId}`;
+            }
         }
 
-        function toggleAccount() {
-            const userId = prompt("Entrez l'ID de l'utilisateur :");
-            if (userId) handleToggleAccount(userId);
+        function toggleAccount(userId) {
+            if (confirm('Confirmer l\'activation/désactivation de ce compte ?')) {
+                fetch('toggle_account.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `user_id=${userId}`
+                })
+                .then(response => response.text())
+                .then(data => {
+                    alert(data);
+                    window.location.reload();
+                })
+                .catch(error => alert('Erreur : ' + error));
+            }
         }
 
-        function changeRole() {
-            const userId = prompt("Entrez l'ID de l'utilisateur :");
+        function changeRole(userId) {
             const newRole = prompt("Nouveau rôle (admin ou user) :");
-            if (userId && newRole) handleChangeRole(userId, newRole);
+            if (newRole && (newRole === 'admin' || newRole === 'user')) {
+                fetch('change_role.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `user_id=${userId}&new_role=${encodeURIComponent(newRole)}`
+                })
+                .then(response => response.text())
+                .then(data => {
+                    alert(data);
+                    window.location.reload();
+                })
+                .catch(error => alert('Erreur : ' + error));
+            } else {
+                alert('Rôle invalide. Utilisez "admin" ou "user".');
+            }
         }
     </script>
 </body>

@@ -17,7 +17,7 @@ try {
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 
-    $id = $_POST['id'];
+    // Gestion des uploads
     $photo_path = null;
     $document_path = null;
     $upload_dir = "uploads/";
@@ -26,7 +26,6 @@ try {
         mkdir($upload_dir, 0777, true);
     }
 
-    // Gestion des nouveaux uploads
     if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
         $photo_path = $upload_dir . uniqid() . '_' . basename($_FILES['photo']['name']);
         move_uploaded_file($_FILES['photo']['tmp_name'], $photo_path);
@@ -37,9 +36,10 @@ try {
         move_uploaded_file($_FILES['document']['tmp_name'], $document_path);
     }
 
-    // Préparer la mise à jour
-    $stmt = $pdo->prepare("UPDATE patrimoines SET name = ?, type = ?, value = ?, date_acquisition = ?, address = ?, latitude = ?, longitude = ?, description = ?, photo_path = COALESCE(?, photo_path), document_path = COALESCE(?, document_path), contract_expiry_date = ? WHERE id = ? AND user_id = ?");
+    // Préparer et exécuter l'insertion
+    $stmt = $pdo->prepare("INSERT INTO patrimoines (user_id, name, type, value, date_acquisition, address, latitude, longitude, description, photo_path, document_path, contract_expiry_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $stmt->execute([
+        $_SESSION['user_id'],
         $_POST['name'],
         $_POST['type'],
         $_POST['value'],
@@ -50,16 +50,14 @@ try {
         $_POST['description'],
         $photo_path,
         $document_path,
-        $_POST['contract_expiry_date'] ?: null,
-        $id,
-        $_SESSION['user_id']
+        $_POST['contract_expiry_date'] ?: null
     ]);
 
-    header("Location: patrimoine.php?id=" . $id);
+    header("Location: patrimoine.php");
     exit();
 
 } catch (PDOException $e) {
-    die("Erreur de modification : " . $e->getMessage());
+    die("Erreur d'insertion : " . $e->getMessage());
 }
 ob_end_flush();
 ?>
