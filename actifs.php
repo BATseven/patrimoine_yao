@@ -103,15 +103,40 @@ try {
             border: none;
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            margin-bottom: 20px;
         }
-        .details-section, .modify-form {
+        .table {
+            background-color: white;
+        }
+        .form-section {
             display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            width: 90%;
+            max-width: 500px;
         }
-        .details-section.active, .modify-form.active {
+        .form-section.active {
             display: block;
         }
-        .add-form {
-            /* Rendre visible par défaut pour test */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+        .overlay.active {
             display: block;
         }
         @media (max-width: 768px) {
@@ -127,241 +152,248 @@ try {
 
 <body>
     <div class="sidebar">
-        <h4 class="text-center">Menu <?php echo ($userRole == 'admin') ? 'Admin' : ''; ?></h4>
+        <h4 class="text-center">Menu <?php echo ($userRole == 'admin') ? 'Admin' : 'Utilisateur'; ?></h4>
+        <a href="dashboard.php"><i data-lucide="home"></i> Accueil</a>
         <?php if ($userRole == 'admin'): ?>
-            <a href="dashboard.php"><i data-lucide="home"></i> Accueil</a>
             <a href="gestion_users.php"><i data-lucide="users"></i> Gestion Utilisateurs</a>
             <a href="validation_doc.php"><i data-lucide="file-check"></i> Validation Documents</a>
-            <a href="patrimoine.php"><i data-lucide="database"></i> Accès Patrimoines</a>
+        <?php endif; ?>
+        <a href="patrimoine.php"><i data-lucide="database"></i> Accès Patrimoines</a>
+        <a href="actifs.php"><i data-lucide="briefcase"></i> Gestion des Actifs</a>
+        <?php if ($userRole == 'admin'): ?>
             <a href="#"><i data-lucide="bar-chart-2"></i> Statistiques Globales</a>
             <a href="#"><i data-lucide="settings"></i> Paramétrage</a>
-        <?php else: ?>
-            <a href="dashboard.php"><i data-lucide="home"></i> Accueil</a>
-            <a href="actifs.php"><i data-lucide="briefcase"></i> Gestion des Actifs</a>
-            <a href="patrimoine.php"><i data-lucide="database"></i> Accès Patrimoines</a>
-            <a href="#"><i data-lucide="home"></i> Mon Patrimoine</a>
         <?php endif; ?>
     </div>
 
     <div class="content">
         <div class="dashboard-header">
             <h2 class="text-blue">Gestion des Actifs - <?php echo htmlspecialchars($userName); ?></h2>
-            <button class="btn btn-primary mb-3" onclick="showAddForm()"><i data-lucide="plus"></i> Ajouter un Actif</button>
+            <p class="text-muted">Dernière mise à jour: <?php echo date('H:i A \o\n l, F j, Y', time()); ?></p>
         </div>
 
-        <!-- Tableau des actifs -->
-        <div class="card p-4 mb-4">
-            <h4 class="card-title">Tableau des Actifs</h4>
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Nom de l'actif</th>
-                        <th>Type</th>
-                        <th>Valeur (€)</th>
-                        <th>Date d'acquisition</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($actifs as $actif): ?>
+        <div class="card">
+            <h4 class="card-title">Liste des Actifs</h4>
+            <button class="btn btn-primary mb-3" onclick="showAddForm()"><i data-lucide="plus"></i> Ajouter un actif</button>
+            <?php if (count($actifs) > 0): ?>
+                <table class="table table-striped">
+                    <thead>
                         <tr>
-                            <td><?php echo htmlspecialchars($actif['name']); ?></td>
-                            <td><?php echo htmlspecialchars($actif['type']); ?></td>
-                            <td><?php echo number_format($actif['value'], 2); ?></td>
-                            <td><?php echo $actif['acquisition_date'] ? date('d/m/Y', strtotime($actif['acquisition_date'])) : 'N/A'; ?></td>
-                            <td>
-                                <a href="?id=<?php echo $actif['id']; ?>" class="btn btn-info btn-sm" onclick="showDetails(<?php echo $actif['id']; ?>)"><i data-lucide="eye"></i> Voir</a>
-                                <button class="btn btn-warning btn-sm" onclick="showModifyForm(<?php echo $actif['id']; ?>)"><i data-lucide="edit"></i> Modifier</button>
-                                <button class="btn btn-danger btn-sm" onclick="deleteActif(<?php echo $actif['id']; ?>)"><i data-lucide="trash"></i> Supprimer</button>
-                                <button class="btn btn-success btn-sm" onclick="arbitrageActif(<?php echo $actif['id']; ?>)"><i data-lucide="repeat"></i> Arbitrage</button>
-                                <button class="btn btn-secondary btn-sm" onclick="fiscaliteActif(<?php echo $actif['id']; ?>)"><i data-lucide="file-text"></i> Fiscalité</button>
-                                <button class="btn btn-primary btn-sm" onclick="planificationActif(<?php echo $actif['id']; ?>)"><i data-lucide="calendar"></i> Planification</button>
-                            </td>
+                            <th>ID</th>
+                            <th>Nom</th>
+                            <th>Valeur (€)</th>
+                            <th>Type</th>
+                            <th>Actions</th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Détails de l'actif -->
-        <div id="detailsSection" class="details-section card p-4 mb-4">
-            <?php if ($actifDetail): ?>
-                <h4 class="card-title">Détails de l'Actif - <?php echo htmlspecialchars($actifDetail['name']); ?></h4>
-                <p><strong>Type :</strong> <?php echo htmlspecialchars($actifDetail['type']); ?></p>
-                <p><strong>Valeur :</strong> <?php echo number_format($actifDetail['value'], 2); ?> €</p>
-                <p><strong>Date d'acquisition :</strong> <?php echo $actifDetail['acquisition_date'] ? date('d/m/Y', strtotime($actifDetail['acquisition_date'])) : 'N/A'; ?></p>
-                <p><strong>Adresse :</strong> <?php echo htmlspecialchars($actifDetail['address'] ?: 'N/A'); ?></p>
-                <p><strong>Description :</strong> <?php echo htmlspecialchars($actifDetail['description'] ?: 'N/A'); ?></p>
-                <button class="btn btn-secondary mt-2" onclick="hideDetails()">Fermer</button>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($actifs as $actif): ?>
+                            <tr>
+                                <td><?php echo $actif['id']; ?></td>
+                                <td><?php echo htmlspecialchars($actif['name']); ?></td>
+                                <td><?php echo number_format($actif['value'], 2); ?></td>
+                                <td><?php echo htmlspecialchars($actif['type']); ?></td>
+                                <td>
+                                    <button class="btn btn-info btn-sm" onclick="showDetails(<?php echo $actif['id']; ?>)"><i data-lucide="info"></i></button>
+                                    <button class="btn btn-warning btn-sm" onclick="showModifyForm(<?php echo $actif['id']; ?>)"><i data-lucide="edit"></i></button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteActif(<?php echo $actif['id']; ?>)"><i data-lucide="trash"></i></button>
+                                    <button class="btn btn-success btn-sm" onclick="arbitrageActif(<?php echo $actif['id']; ?>)"><i data-lucide="repeat"></i></button>
+                                    <button class="btn btn-secondary btn-sm" onclick="fiscaliteActif(<?php echo $actif['id']; ?>)"><i data-lucide="file-text"></i></button>
+                                    <button class="btn btn-primary btn-sm" onclick="planificationActif(<?php echo $actif['id']; ?>)"><i data-lucide="calendar"></i></button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php else: ?>
+                <p>Aucun actif trouvé.</p>
             <?php endif; ?>
         </div>
 
-        <!-- Formulaire de modification -->
-        <div id="modifyForm" class="modify-form card p-4 mb-4">
-            <?php if ($actifDetail): ?>
-                <h4 class="card-title">Modifier Actif - <?php echo htmlspecialchars($actifDetail['name']); ?></h4>
-                <form action="modify_actif.php" method="post" enctype="multipart/form-data">
-                    <input type="hidden" name="id" value="<?php echo $actifDetail['id']; ?>">
-                    <div class="form-group">
-                        <label for="name">Nom de l'actif</label>
-                        <input type="text" name="name" id="name" class="form-control" value="<?php echo htmlspecialchars($actifDetail['name']); ?>" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="type">Type</label>
-                        <select name="type" id="type" class="form-control" required>
-                            <option value="immobilier" <?php echo $actifDetail['type'] == 'immobilier' ? 'selected' : ''; ?>>Immobilier</option>
-                            <option value="financier" <?php echo $actifDetail['type'] == 'financier' ? 'selected' : ''; ?>>Financier</option>
-                            <option value="autre" <?php echo $actifDetail['type'] == 'autre' ? 'selected' : ''; ?>>Autre</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="value">Valeur (€)</label>
-                        <input type="number" name="value" id="value" class="form-control" step="0.01" value="<?php echo $actifDetail['value']; ?>" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="acquisition_date">Date d'acquisition</label>
-                        <input type="date" name="acquisition_date" id="acquisition_date" class="form-control" value="<?php echo $actifDetail['acquisition_date'] ?: ''; ?>" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="address">Adresse</label>
-                        <input type="text" name="address" id="address" class="form-control" value="<?php echo htmlspecialchars($actifDetail['address'] ?: ''); ?>">
-                    </div>
-                    <div class="form-group">
-                        <label for="description">Description</label>
-                        <textarea name="description" id="description" class="form-control" rows="3"><?php echo htmlspecialchars($actifDetail['description'] ?: ''); ?></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="photo">Photo</label>
-                        <input type="file" name="photo" id="photo" class="form-control">
-                    </div>
-                    <button type="submit" class="btn btn-primary mt-2"><i data-lucide="save"></i> Sauvegarder</button>
-                    <button type="button" class="btn btn-secondary mt-2" onclick="hideModifyForm()">Annuler</button>
-                </form>
+        <!-- Détails de l'actif -->
+        <div id="detailsSection" class="form-section">
+            <h4>Détails de l'actif</h4>
+            <?php if ($actifDetail && is_array($actifDetail)): ?>
+                <p><strong>Nom :</strong> <?php echo htmlspecialchars($actifDetail['name'] ?? 'N/A'); ?></p>
+                <p><strong>Valeur :</strong> <?php echo number_format($actifDetail['value'] ?? 0, 2); ?> €</p>
+                <p><strong>Type :</strong> <?php echo htmlspecialchars($actifDetail['type'] ?? 'N/A'); ?></p>
+                <button class="btn btn-secondary" onclick="hideDetails()">Fermer</button>
+            <?php else: ?>
+                <p>Aucun détail disponible.</p>
             <?php endif; ?>
         </div>
 
         <!-- Formulaire d'ajout -->
-        <div id="addForm" class="add-form card p-4 mb-4">
-            <h4 class="card-title">Ajouter un Actif</h4>
+        <div id="addForm" class="form-section">
+            <h4>Ajouter un actif</h4>
             <form action="add_actif.php" method="post" enctype="multipart/form-data">
-                <div class="form-group">
-                    <label for="name">Nom de l'actif</label>
-                    <input type="text" name="name" id="name" class="form-control" required>
+                <div class="mb-3">
+                    <label for="name" class="form-label">Nom</label>
+                    <input type="text" class="form-control" id="name" name="name" required>
                 </div>
-                <div class="form-group">
-                    <label for="type">Type</label>
-                    <select name="type" id="type" class="form-control" required>
-                        <option value="immobilier">Immobilier</option>
-                        <option value="financier">Financier</option>
-                        <option value="autre">Autre</option>
+                <div class="mb-3">
+                    <label for="type" class="form-label">Type</label>
+                    <select class="form-control" id="type" name="type" required>
+                        <option value="Immobilier">Immobilier</option>
+                        <option value="Bourse">Bourse</option>
+                        <option value="Épargne">Épargne</option>
+                        <option value="Autre">Autre</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="value">Valeur (€)</label>
-                    <input type="number" name="value" id="value" class="form-control" step="0.01" required>
+                <div class="mb-3">
+                    <label for="value" class="form-label">Valeur (€)</label>
+                    <input type="number" step="0.01" class="form-control" id="value" name="value" required>
                 </div>
-                <div class="form-group">
-                    <label for="acquisition_date">Date d'acquisition</label>
-                    <input type="date" name="acquisition_date" id="acquisition_date" class="form-control" required>
+                <div class="mb-3">
+                    <label for="acquisition_date" class="form-label">Date d'acquisition</label>
+                    <input type="date" class="form-control" id="acquisition_date" name="acquisition_date" required>
                 </div>
-                <div class="form-group">
-                    <label for="address">Adresse</label>
-                    <input type="text" name="address" id="address" class="form-control">
+                <div class="mb-3">
+                    <label for="address" class="form-label">Adresse</label>
+                    <input type="text" class="form-control" id="address" name="address">
                 </div>
-                <div class="form-group">
-                    <label for="description">Description</label>
-                    <textarea name="description" id="description" class="form-control" rows="3"></textarea>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description"></textarea>
                 </div>
-                <div class="form-group">
-                    <label for="photo">Photo</label>
-                    <input type="file" name="photo" id="photo" class="form-control">
+                <div class="mb-3">
+                    <label for="photo" class="form-label">Photo</label>
+                    <input type="file" class="form-control" id="photo" name="photo">
                 </div>
-                <button type="submit" class="btn btn-primary mt-2"><i data-lucide="save"></i> Ajouter</button>
-                <button type="button" class="btn btn-secondary mt-2" onclick="hideAddForm()">Annuler</button>
+                <button type="submit" class="btn btn-primary">Ajouter</button>
+                <button type="button" class="btn btn-secondary" onclick="hideAddForm()">Annuler</button>
             </form>
         </div>
 
-        <div class="text-center mt-4">
-            <a href="dashboard.php" class="btn btn-secondary">Retour au Tableau de Bord</a>
+        <!-- Formulaire de modification -->
+        <div id="modifyForm" class="form-section">
+            <h4>Modifier un actif</h4>
+            <form action="modify_actif.php" method="post">
+                <input type="hidden" id="modifyId" name="id">
+                <div class="mb-3">
+                    <label for="modifyName" class="form-label">Nom</label>
+                    <input type="text" class="form-control" id="modifyName" name="name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="modifyType" class="form-label">Type</label>
+                    <select class="form-control" id="modifyType" name="type" required>
+                        <option value="Immobilier">Immobilier</option>
+                        <option value="Bourse">Bourse</option>
+                        <option value="Épargne">Épargne</option>
+                        <option value="Autre">Autre</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="modifyValue" class="form-label">Valeur (€)</label>
+                    <input type="number" step="0.01" class="form-control" id="modifyValue" name="value" required>
+                </div>
+                <div class="mb-3">
+                    <label for="modifyAcquisitionDate" class="form-label">Date d'acquisition</label>
+                    <input type="date" class="form-control" id="modifyAcquisitionDate" name="acquisition_date" required>
+                </div>
+                <div class="mb-3">
+                    <label for="modifyAddress" class="form-label">Adresse</label>
+                    <input type="text" class="form-control" id="modifyAddress" name="address">
+                </div>
+                <div class="mb-3">
+                    <label for="modifyDescription" class="form-label">Description</label>
+                    <textarea class="form-control" id="modifyDescription" name="description"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Modifier</button>
+                <button type="button" class="btn btn-secondary" onclick="hideModifyForm()">Annuler</button>
+            </form>
         </div>
-    </div>
 
-    <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script>
-        lucide.createIcons();
+        <div id="overlay" class="overlay"></div>
 
-        function showDetails(id) {
-            window.location.href = `actifs.php?id=${id}`;
-        }
+        <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+        <script>
+            lucide.createIcons();
 
-        function hideDetails() {
-            document.getElementById('detailsSection').classList.remove('active');
-            window.history.pushState({}, document.title, 'actifs.php');
-        }
-
-        function showModifyForm(id) {
-            if (document.getElementById('modifyForm').querySelector('input[name="id"]').value !== id.toString()) {
+            function showDetails(id) {
                 window.location.href = `actifs.php?id=${id}`;
             }
-            document.getElementById('modifyForm').classList.add('active');
-        }
 
-        function hideModifyForm() {
-            document.getElementById('modifyForm').classList.remove('active');
-        }
-
-        function deleteActif(id) {
-            if (confirm('Confirmer la suppression ?')) {
-                fetch('delete_actif.php', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: `id=${id}`
-                })
-                .then(response => {
-                    if (response.ok) window.location.reload();
-                    else alert('Erreur lors de la suppression.');
-                })
-                .catch(error => alert('Erreur : ' + error));
+            function hideDetails() {
+                document.getElementById('detailsSection').classList.remove('active');
             }
-        }
 
-        function arbitrageActif(id) {
-            if (confirm('Effectuer un arbitrage sur cet actif ?')) {
-                fetch('arbitrage_actif.php', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: `id=${id}&arbitrage_date=${new Date().toISOString().split('T')[0]}`
-                })
-                .then(response => response.text())
-                .then(data => {
-                    alert(data);
-                    window.location.reload();
-                })
-                .catch(error => alert('Erreur : ' + error));
+            function showModifyForm(id) {
+                fetch(`get_actif.php?id=${id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('modifyId').value = data.id;
+                        document.getElementById('modifyName').value = data.name;
+                        document.getElementById('modifyType').value = data.type;
+                        document.getElementById('modifyValue').value = data.value;
+                        document.getElementById('modifyAcquisitionDate').value = data.acquisition_date;
+                        document.getElementById('modifyAddress').value = data.address || '';
+                        document.getElementById('modifyDescription').value = data.description || '';
+                        document.getElementById('modifyForm').classList.add('active');
+                        document.getElementById('overlay').classList.add('active');
+                    })
+                    .catch(error => alert('Erreur : ' + error));
             }
-        }
 
-        function fiscaliteActif(id) {
-            window.location.href = `fiscalite_actif.php?id=${id}`;
-        }
+            function hideModifyForm() {
+                document.getElementById('modifyForm').classList.remove('active');
+                document.getElementById('overlay').classList.remove('active');
+            }
 
-        function planificationActif(id) {
-            window.location.href = `planification_actif.php?id=${id}`;
-        }
+            function deleteActif(id) {
+                if (confirm('Confirmer la suppression ?')) {
+                    fetch('delete_actif.php', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: `id=${id}`
+                    })
+                    .then(response => {
+                        if (response.ok) window.location.reload();
+                        else alert('Erreur lors de la suppression.');
+                    })
+                    .catch(error => alert('Erreur : ' + error));
+                }
+            }
 
-        function showAddForm() {
-            document.getElementById('addForm').classList.add('active');
-        }
+            function arbitrageActif(id) {
+                if (confirm('Effectuer un arbitrage sur cet actif ?')) {
+                    fetch('arbitrage_actif.php', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: `id=${id}&arbitrage_date=${new Date().toISOString().split('T')[0]}`
+                    })
+                    .then(response => response.text())
+                    .then(data => {
+                        alert(data);
+                        window.location.reload();
+                    })
+                    .catch(error => alert('Erreur : ' + error));
+                }
+            }
 
-        function hideAddForm() {
-            document.getElementById('addForm').classList.remove('active');
-        }
+            function fiscaliteActif(id) {
+                window.location.href = `fiscalite_actif.php?id=${id}`;
+            }
 
-        <?php if (isset($_GET['id'])): ?>
-            document.getElementById('detailsSection').classList.add('active');
-        <?php endif; ?>
-    </script>
-</body>
+            function planificationActif(id) {
+                window.location.href = `planification_actif.php?id=${id}`;
+            }
+
+            function showAddForm() {
+                document.getElementById('addForm').classList.add('active');
+                document.getElementById('overlay').classList.add('active');
+            }
+
+            function hideAddForm() {
+                document.getElementById('addForm').classList.remove('active');
+                document.getElementById('overlay').classList.remove('active');
+            }
+
+            <?php if (isset($_GET['id'])): ?>
+                document.getElementById('detailsSection').classList.add('active');
+            <?php endif; ?>
+        </script>
+    </body>
 </html>
 <?php
 ob_end_flush();
