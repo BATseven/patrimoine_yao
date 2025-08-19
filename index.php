@@ -197,8 +197,8 @@ ob_start();
           <div class="swiper-wrapper">
             <div class="swiper-slide">
               <div class="testimonial-item">
-                <img src="assets/img/testimonials/testimonials-1.jpg" class="testimonial-img" alt="">
-                <h3>Jean Dupont</h3>
+                <img src="assets/img/testimonials/BINJK.jpg" class="testimonial-img" alt="">
+                <h3>KOUASSI YAO</h3>
                 <h4>Entrepreneur</h4>
                 <div class="stars">
                   <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>

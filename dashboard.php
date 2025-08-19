@@ -1,5 +1,4 @@
 <?php
-// Démarrer le buffer de sortie
 ob_start();
 require_once 'config.php';
 
@@ -14,7 +13,7 @@ $userRole = $_SESSION['role'];
 $userName = $_SESSION['full_name'];
 // Mise à jour de la date et heure avec le fuseau GMT
 date_default_timezone_set('GMT');
-$dateTime = date('H:i A \o\n l, F j, Y', strtotime('11:35 AM GMT')); // 11:35 AM GMT, Monday, August 18, 2025
+$dateTime = date('H:i A \o\n l, F j, Y', strtotime('08:24 AM GMT')); // 08:24 AM GMT, Tuesday, August 19, 2025
 
 // Connexion à la base de données
 global $pdo;
@@ -38,7 +37,6 @@ try {
 ?>
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
@@ -50,9 +48,9 @@ try {
     <link href="assets/img/favicon.png" rel="icon">
     <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
-    <!-- Fonts -->
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com" rel="preconnect">
-    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin">
+    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     <!-- Vendor CSS Files -->
@@ -176,7 +174,6 @@ try {
         }
     </style>
 </head>
-
 <body>
     <div class="sidebar">
         <h4 class="text-center">Menu <?php echo ($userRole == 'admin') ? 'Admin' : 'Utilisateur'; ?></h4>
@@ -187,10 +184,6 @@ try {
             <a href="validation_doc.php"><i data-lucide="file-check"></i> Validation Documents</a>
         <?php endif; ?>
         <a href="patrimoine.php"><i data-lucide="database"></i> Accès Patrimoines</a>
-        <!-- Nouvelle section 1 : Agenda avec échéances (pour tous) -->
-        <a href="#"><i data-lucide="calendar"></i> Agenda avec échéances</a>
-        <!-- Nouvelle section 2 : Messagerie / Assistance (pour tous) avec lien vers chat.php -->
-        <a href="chat.php"><i data-lucide="mail"></i> Messagerie / Assistance</a>
         <?php if ($userRole == 'admin'): ?>
             <a href="reglages.php"><i data-lucide="settings"></i> Paramétrage</a>
             <a href="/patrimoine/statistics_dashboard.php"><i data-lucide="bar-chart-2"></i> Statistiques Globales</a>
@@ -204,7 +197,6 @@ try {
             <p class="text-muted">Dernière mise à jour: <?php echo $dateTime; ?></p>
         </div>
 
-        <!-- Section des carreaux (statistiques) -->
         <div class="row mb-4">
             <div class="col-md-6 col-sm-6 mb-3">
                 <div class="card">
@@ -222,7 +214,6 @@ try {
             </div>
         </div>
 
-        <!-- Section des carreaux pour les éléments initiaux -->
         <div class="row">
             <div class="col-md-4 col-sm-6 mb-3">
                 <div class="card">
@@ -272,6 +263,24 @@ try {
                     <a href="actifs.php" class="btn btn-primary"><i data-lucide="briefcase"></i> Gérer</a>
                 </div>
             </div>
+            <!-- Nouvelle section Agenda -->
+            <div class="col-md-4 col-sm-6 mb-3">
+                <div class="card">
+                    <i data-lucide="calendar"></i>
+                    <h4 class="card-title">Agenda</h4>
+                    <p class="card-text">Consultez et gérez vos rendez-vous.</p>
+                    <a href="agenda.php" class="btn btn-primary"><i data-lucide="eye"></i> Voir</a>
+                </div>
+            </div>
+            <!-- Nouvelle section Messagerie/Assistance -->
+            <div class="col-md-4 col-sm-6 mb-3">
+                <div class="card">
+                    <i data-lucide="mail"></i>
+                    <h4 class="card-title">Messagerie / Assistance</h4>
+                    <p class="card-text">Discutez avec notre assistant.</p>
+                    <a href="chat.php" class="btn btn-primary"><i data-lucide="message-circle"></i> Accéder</a>
+                </div>
+            </div>
         </div>
 
         <div class="text-center mt-4">
@@ -281,15 +290,12 @@ try {
         </div>
     </div>
 
-    <!-- Vendor JS Files -->
     <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script>
         lucide.createIcons();
     </script>
 </body>
-
 </html>
 <?php
-// Vider le buffer de sortie
 ob_end_flush();
 ?>
